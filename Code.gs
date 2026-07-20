@@ -111,7 +111,7 @@ function onHomepage(e) {
   return CardService.newCardBuilder()
     .setHeader(
       CardService.newCardHeader()
-        .setTitle('🇨🇳 Google Docs Chinese Tools')
+        .setTitle('🇨🇳 Google Docs Chinese Tools v1.0.0')
         .setSubtitle('by Huzaifa Irfan')
     )
     .addSection(
