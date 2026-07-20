@@ -27,10 +27,59 @@ const TONE_COLORS_DEFAULT = {
 };
 
 const PRESETS = {
-  pleco: TONE_COLORS_DEFAULT,
-  vivid: { 1: '#FF1744', 2: '#00C853', 3: '#2979FF', 4: '#AA00FF', 5: '#9E9E9E' },
-  pastel: { 1: '#FFAB91', 2: '#A5D6A7', 3: '#90CAF9', 4: '#CE93D8', 5: '#BDBDBD' },
-  grayscale: { 1: '#212121', 2: '#424242', 3: '#616161', 4: '#757575', 5: '#9E9E9E' }
+  // Similar to Pleco
+  pleco: {
+    1: '#E53935', // Red
+    2: '#43A047', // Green
+    3: '#1E88E5', // Blue
+    4: '#8E24AA', // Purple
+    5: '#757575'  // Gray
+  },
+
+  // Strong colors, excellent readability
+  vivid: {
+    1: '#C62828', // Dark Red
+    2: '#2E7D32', // Dark Green
+    3: '#1565C0', // Dark Blue
+    4: '#6A1B9A', // Dark Purple
+    5: '#616161'  // Gray
+  },
+
+  // Soft but still readable
+  pastel: {
+    1: '#D84315', // Soft Orange-Red
+    2: '#558B2F', // Olive Green
+    3: '#1976D2', // Medium Blue
+    4: '#7B1FA2', // Medium Purple
+    5: '#9E9E9E'
+  },
+
+  // Black & White friendly
+  grayscale: {
+    1: '#000000',
+    2: '#303030',
+    3: '#505050',
+    4: '#707070',
+    5: '#A0A0A0'
+  },
+
+  // Colorblind-friendly (Okabe-Ito palette)
+  colorblind: {
+    1: '#D55E00', // Vermillion
+    2: '#009E73', // Bluish Green
+    3: '#0072B2', // Blue
+    4: '#CC79A7', // Reddish Purple
+    5: '#7F7F7F'
+  },
+
+  // Material Design palette
+  material: {
+    1: '#D32F2F',
+    2: '#388E3C',
+    3: '#1976D2',
+    4: '#7B1FA2',
+    5: '#757575'
+  }
 };
 
 const PINYIN_DATA_URL = 'https://raw.githubusercontent.com/mozillazg/pinyin-data/master/pinyin.txt';
