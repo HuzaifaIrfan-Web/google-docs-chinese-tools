@@ -27,9 +27,9 @@ const TONE_COLORS_DEFAULT = {
 };
 
 const PRESETS = {
-  pleco:     TONE_COLORS_DEFAULT,
-  vivid:     { 1: '#FF1744', 2: '#00C853', 3: '#2979FF', 4: '#AA00FF', 5: '#9E9E9E' },
-  pastel:    { 1: '#FFAB91', 2: '#A5D6A7', 3: '#90CAF9', 4: '#CE93D8', 5: '#BDBDBD' },
+  pleco: TONE_COLORS_DEFAULT,
+  vivid: { 1: '#FF1744', 2: '#00C853', 3: '#2979FF', 4: '#AA00FF', 5: '#9E9E9E' },
+  pastel: { 1: '#FFAB91', 2: '#A5D6A7', 3: '#90CAF9', 4: '#CE93D8', 5: '#BDBDBD' },
   grayscale: { 1: '#212121', 2: '#424242', 3: '#616161', 4: '#757575', 5: '#9E9E9E' }
 };
 
@@ -53,20 +53,67 @@ const MARKER = '\u200B';
 
 function onHomepage(e) {
   const host = getActiveHost_();
-  const hostLabel = { docs: 'Google Docs', sheets: 'Google Sheets', slides: 'Google Slides' }[host] || 'this app';
+  const hostLabel = {
+    docs: 'Google Docs',
+    sheets: 'Google Sheets',
+    slides: 'Google Slides'
+  }[host] || 'this app';
 
-  const card = CardService.newCardBuilder()
-    .setHeader(CardService.newCardHeader().setTitle('🇨🇳 Google Docs Chinese Tools'))
-    .addSection(CardService.newCardSection()
-      .addWidget(CardService.newTextParagraph().setText('Tone-colors Chinese text and adds pinyin/zhuyin annotations in ' + hostLabel + '.'))
-      .addWidget(
-        CardService.newTextButton()
-          .setText('Open Chinese Tools')
-          .setOnClickAction(CardService.newAction().setFunctionName('showSidebar_'))
-      )
+  return CardService.newCardBuilder()
+    .setHeader(
+      CardService.newCardHeader()
+        .setTitle('🇨🇳 Google Docs Chinese Tools')
+        .setSubtitle('by Huzaifa Irfan')
+    )
+    .addSection(
+      CardService.newCardSection()
+        .addWidget(
+          CardService.newTextParagraph().setText(
+            'Tone-color Chinese text and add Pinyin/Zhuyin annotations in ' +
+            hostLabel +
+            '.'
+          )
+        )
+        .addWidget(
+          CardService.newTextButton()
+            .setText('🧰 Open Chinese Tools')
+            .setOnClickAction(
+              CardService.newAction().setFunctionName('showSidebar_')
+            )
+        )
+    )
+    .addSection(
+      CardService.newCardSection()
+        .setHeader('Resources')
+        .addWidget(
+          CardService.newTextButton()
+            .setText('📦 GitHub Repository')
+            .setOpenLink(
+              CardService.newOpenLink().setUrl(
+                'https://github.com/HuzaifaIrfan-Web/google-docs-chinese-tools'
+              )
+            )
+        )
+        .addWidget(
+          CardService.newTextButton()
+            .setText('🌐 huzaifairfan.com')
+            .setOpenLink(
+              CardService.newOpenLink().setUrl(
+                'https://huzaifairfan.com/'
+              )
+            )
+        )
+        .addWidget(
+          CardService.newTextButton()
+            .setText('✉️ huzaifairfan2001@gmail.com')
+            .setOpenLink(
+              CardService.newOpenLink().setUrl(
+                'mailto:huzaifairfan2001@gmail.com'
+              )
+            )
+        )
     )
     .build();
-  return card;
 }
 
 function showSidebar_() {
@@ -86,9 +133,9 @@ function showSidebar() {
 /* ============================ HOST DETECTION ============================ */
 
 function getActiveHost_() {
-  try { if (DocumentApp.getActiveDocument()) return 'docs'; } catch (e) {}
-  try { if (SpreadsheetApp.getActiveSpreadsheet()) return 'sheets'; } catch (e) {}
-  try { if (SlidesApp.getActivePresentation()) return 'slides'; } catch (e) {}
+  try { if (DocumentApp.getActiveDocument()) return 'docs'; } catch (e) { }
+  try { if (SpreadsheetApp.getActiveSpreadsheet()) return 'sheets'; } catch (e) { }
+  try { if (SlidesApp.getActivePresentation()) return 'slides'; } catch (e) { }
   return null;
 }
 
@@ -193,7 +240,7 @@ function getPinyinDict_() {
       if (!part) { ok = false; break; }
       json += part;
     }
-    if (ok) { try { return JSON.parse(json); } catch (e) {} }
+    if (ok) { try { return JSON.parse(json); } catch (e) { } }
   }
   return fetchAndCachePinyinDict_();
 }
@@ -206,13 +253,13 @@ function refreshPinyinData() {
 /* ======================= TONE PARSING (shared) ======================= */
 
 const TONE_MARKS_ = {
-  'ā':['a',1],'á':['a',2],'ǎ':['a',3],'à':['a',4],
-  'ē':['e',1],'é':['e',2],'ě':['e',3],'è':['e',4],
-  'ī':['i',1],'í':['i',2],'ǐ':['i',3],'ì':['i',4],
-  'ō':['o',1],'ó':['o',2],'ǒ':['o',3],'ò':['o',4],
-  'ū':['u',1],'ú':['u',2],'ǔ':['u',3],'ù':['u',4],
-  'ǖ':['ü',1],'ǘ':['ü',2],'ǚ':['ü',3],'ǜ':['ü',4],
-  'ń':['n',2],'ň':['n',3],'ǹ':['n',4],'ḿ':['m',2]
+  'ā': ['a', 1], 'á': ['a', 2], 'ǎ': ['a', 3], 'à': ['a', 4],
+  'ē': ['e', 1], 'é': ['e', 2], 'ě': ['e', 3], 'è': ['e', 4],
+  'ī': ['i', 1], 'í': ['i', 2], 'ǐ': ['i', 3], 'ì': ['i', 4],
+  'ō': ['o', 1], 'ó': ['o', 2], 'ǒ': ['o', 3], 'ò': ['o', 4],
+  'ū': ['u', 1], 'ú': ['u', 2], 'ǔ': ['u', 3], 'ù': ['u', 4],
+  'ǖ': ['ü', 1], 'ǘ': ['ü', 2], 'ǚ': ['ü', 3], 'ǜ': ['ü', 4],
+  'ń': ['n', 2], 'ň': ['n', 3], 'ǹ': ['n', 4], 'ḿ': ['m', 2]
 };
 
 function parsePinyinSyllable_(raw) {
@@ -227,25 +274,25 @@ function parsePinyinSyllable_(raw) {
   return { plain: plain.toLowerCase(), tone: tone };
 }
 
-const ZHUYIN_INITIALS_ = [['zh','ㄓ'],['ch','ㄔ'],['sh','ㄕ'],['b','ㄅ'],['p','ㄆ'],['m','ㄇ'],['f','ㄈ'],
-  ['d','ㄉ'],['t','ㄊ'],['n','ㄋ'],['l','ㄌ'],['g','ㄍ'],['k','ㄎ'],['h','ㄏ'],['j','ㄐ'],['q','ㄑ'],
-  ['x','ㄒ'],['r','ㄖ'],['z','ㄗ'],['c','ㄘ'],['s','ㄙ']];
+const ZHUYIN_INITIALS_ = [['zh', 'ㄓ'], ['ch', 'ㄔ'], ['sh', 'ㄕ'], ['b', 'ㄅ'], ['p', 'ㄆ'], ['m', 'ㄇ'], ['f', 'ㄈ'],
+['d', 'ㄉ'], ['t', 'ㄊ'], ['n', 'ㄋ'], ['l', 'ㄌ'], ['g', 'ㄍ'], ['k', 'ㄎ'], ['h', 'ㄏ'], ['j', 'ㄐ'], ['q', 'ㄑ'],
+['x', 'ㄒ'], ['r', 'ㄖ'], ['z', 'ㄗ'], ['c', 'ㄘ'], ['s', 'ㄙ']];
 
 const ZHUYIN_SPECIAL_SYLLABLES_ = {
-  'zhi':'ㄓ','chi':'ㄔ','shi':'ㄕ','ri':'ㄖ','zi':'ㄗ','ci':'ㄘ','si':'ㄙ',
-  'yi':'ㄧ','ya':'ㄧㄚ','ye':'ㄧㄝ','yao':'ㄧㄠ','you':'ㄧㄡ','yan':'ㄧㄢ','yin':'ㄧㄣ',
-  'yang':'ㄧㄤ','ying':'ㄧㄥ','yong':'ㄩㄥ','yu':'ㄩ','yue':'ㄩㄝ','yuan':'ㄩㄢ','yun':'ㄩㄣ',
-  'wu':'ㄨ','wa':'ㄨㄚ','wo':'ㄨㄛ','wai':'ㄨㄞ','wei':'ㄨㄟ','wan':'ㄨㄢ','wen':'ㄨㄣ',
-  'wang':'ㄨㄤ','weng':'ㄨㄥ','er':'ㄦ','e':'ㄜ','a':'ㄚ','o':'ㄛ','ai':'ㄞ','ei':'ㄟ',
-  'ao':'ㄠ','ou':'ㄡ','an':'ㄢ','en':'ㄣ','ang':'ㄤ','eng':'ㄥ'
+  'zhi': 'ㄓ', 'chi': 'ㄔ', 'shi': 'ㄕ', 'ri': 'ㄖ', 'zi': 'ㄗ', 'ci': 'ㄘ', 'si': 'ㄙ',
+  'yi': 'ㄧ', 'ya': 'ㄧㄚ', 'ye': 'ㄧㄝ', 'yao': 'ㄧㄠ', 'you': 'ㄧㄡ', 'yan': 'ㄧㄢ', 'yin': 'ㄧㄣ',
+  'yang': 'ㄧㄤ', 'ying': 'ㄧㄥ', 'yong': 'ㄩㄥ', 'yu': 'ㄩ', 'yue': 'ㄩㄝ', 'yuan': 'ㄩㄢ', 'yun': 'ㄩㄣ',
+  'wu': 'ㄨ', 'wa': 'ㄨㄚ', 'wo': 'ㄨㄛ', 'wai': 'ㄨㄞ', 'wei': 'ㄨㄟ', 'wan': 'ㄨㄢ', 'wen': 'ㄨㄣ',
+  'wang': 'ㄨㄤ', 'weng': 'ㄨㄥ', 'er': 'ㄦ', 'e': 'ㄜ', 'a': 'ㄚ', 'o': 'ㄛ', 'ai': 'ㄞ', 'ei': 'ㄟ',
+  'ao': 'ㄠ', 'ou': 'ㄡ', 'an': 'ㄢ', 'en': 'ㄣ', 'ang': 'ㄤ', 'eng': 'ㄥ'
 };
 
-const ZHUYIN_FINALS_ = [['iang','ㄧㄤ'],['iong','ㄩㄥ'],['uang','ㄨㄤ'],['ueng','ㄨㄥ'],
-  ['ian','ㄧㄢ'],['iao','ㄧㄠ'],['uai','ㄨㄞ'],['uan','ㄨㄢ'],['van','ㄩㄢ'],['ing','ㄧㄥ'],
-  ['ang','ㄤ'],['eng','ㄥ'],['ong','ㄨㄥ'],['ia','ㄧㄚ'],['ie','ㄧㄝ'],['iu','ㄧㄡ'],['in','ㄧㄣ'],
-  ['ua','ㄨㄚ'],['uo','ㄨㄛ'],['ui','ㄨㄟ'],['un','ㄨㄣ'],['ve','ㄩㄝ'],['ue','ㄩㄝ'],['vn','ㄩㄣ'],
-  ['ai','ㄞ'],['ei','ㄟ'],['ao','ㄠ'],['ou','ㄡ'],['an','ㄢ'],['en','ㄣ'],['er','ㄦ'],
-  ['a','ㄚ'],['o','ㄛ'],['e','ㄜ'],['i','ㄧ'],['u','ㄨ'],['ü','ㄩ'],['v','ㄩ']];
+const ZHUYIN_FINALS_ = [['iang', 'ㄧㄤ'], ['iong', 'ㄩㄥ'], ['uang', 'ㄨㄤ'], ['ueng', 'ㄨㄥ'],
+['ian', 'ㄧㄢ'], ['iao', 'ㄧㄠ'], ['uai', 'ㄨㄞ'], ['uan', 'ㄨㄢ'], ['van', 'ㄩㄢ'], ['ing', 'ㄧㄥ'],
+['ang', 'ㄤ'], ['eng', 'ㄥ'], ['ong', 'ㄨㄥ'], ['ia', 'ㄧㄚ'], ['ie', 'ㄧㄝ'], ['iu', 'ㄧㄡ'], ['in', 'ㄧㄣ'],
+['ua', 'ㄨㄚ'], ['uo', 'ㄨㄛ'], ['ui', 'ㄨㄟ'], ['un', 'ㄨㄣ'], ['ve', 'ㄩㄝ'], ['ue', 'ㄩㄝ'], ['vn', 'ㄩㄣ'],
+['ai', 'ㄞ'], ['ei', 'ㄟ'], ['ao', 'ㄠ'], ['ou', 'ㄡ'], ['an', 'ㄢ'], ['en', 'ㄣ'], ['er', 'ㄦ'],
+['a', 'ㄚ'], ['o', 'ㄛ'], ['e', 'ㄜ'], ['i', 'ㄧ'], ['u', 'ㄨ'], ['ü', 'ㄩ'], ['v', 'ㄩ']];
 
 const TONE_MARK_SUFFIX_ = { 1: '', 2: 'ˊ', 3: 'ˇ', 4: 'ˋ', 5: '' };
 
