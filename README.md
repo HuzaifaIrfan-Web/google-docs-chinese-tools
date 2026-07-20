@@ -12,7 +12,46 @@ Last Updated on 2026-07-20
 
 [▶️![Demo](https://img.youtube.com/vi/rv9DeyLFg/maxresdefault.jpg)](https://www.youtube.com/watch?v=rv9Dey5Fg)
 
+
+
+# 🛠️ Development and Install as Test
+
+## Instal Script on Google Workspace as Test Script
+
+https://script.google.com/home
+
+### Add new Project and Name
+
+Google Docs Chinese Tools
+
+### Create new HTML File as "Sidebar" and Paste Content
+
+https://github.com/HuzaifaIrfan-Web/google-docs-chinese-tools/blob/main/Sidebar.html
+
+
+### Goto Project Settings cog File "appsscript.json" and Paste Content in editor
+
+- Show "appsscript.json" manifest file in editor
+- https://github.com/HuzaifaIrfan-Web/google-docs-chinese-tools/blob/main/appsscript.json
+
+### Copy "Code.gs" and Paste Content
+
+https://github.com/HuzaifaIrfan-Web/google-docs-chinese-tools/blob/main/Code.gs
+
+
+### Deploy as Test and Click Install
+
+### Click Run on Editor to Authorize Permissions
+
 # 🚀 Usage
+
+## Open file in Google Docs, Slides, Sheets
+
+### Open Side Panel from bottom left
+
+### Click on Chinese Tools Icon to Use the App
+
+
 
 
 # 📝 Documentation
