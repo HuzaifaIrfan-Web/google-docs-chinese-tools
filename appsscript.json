@@ -1,0 +1,43 @@
+{
+  "timeZone": "Etc/GMT",
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/documents.currentonly",
+    "https://www.googleapis.com/auth/spreadsheets.currentonly",
+    "https://www.googleapis.com/auth/presentations.currentonly",
+    "https://www.googleapis.com/auth/script.container.ui",
+    "https://www.googleapis.com/auth/script.external_request"
+  ],
+  "urlFetchWhitelist": [
+    "https://raw.githubusercontent.com/mozillazg/pinyin-data/master/"
+  ],
+  "addOns": {
+    "common": {
+      "name": "Google Docs Chinese Tools",
+      "logoUrl": "https://raw.githubusercontent.com/HuzaifaIrfan-Web/google-docs-chinese-tools/main/icon128.png",
+      "layoutProperties": {
+        "primaryColor": "#1E88E5"
+      },
+      "homepageTrigger": {
+        "runFunction": "onHomepage",
+        "enabled": true
+      }
+    },
+    "docs": {
+      "homepageTrigger": {
+        "runFunction": "onHomepage"
+      }
+    },
+    "sheets": {
+      "homepageTrigger": {
+        "runFunction": "onHomepage"
+      }
+    },
+    "slides": {
+      "homepageTrigger": {
+        "runFunction": "onHomepage"
+      }
+    }
+  }
+}

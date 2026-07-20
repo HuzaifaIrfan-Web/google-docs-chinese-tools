@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --red: #E53935; --green: #43A047; --blue: #1E88E5; --purple: #8E24AA; --grey: #757575;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      font-size: 13px;
+      color: #202124;
+      margin: 0;
+      padding: 14px;
+      background: #fff;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    h1 {
+      font-size: 16px;
+      margin: 0;
+    }
+    .credit {
+      font-size: 11px;
+      color: #888;
+      margin: 0 0 16px 0;
+    }
+    section {
+      border-top: 1px solid #eee;
+      padding: 12px 0;
+    }
+    section:first-of-type { border-top: none; padding-top: 0; }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .row label.title {
+      font-weight: 600;
+    }
+    select, input[type=color] {
+      font-size: 12px;
+      padding: 3px 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 34px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background-color: #ccc; border-radius: 18px; transition: .15s;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 14px; width: 14px;
+      left: 2px; bottom: 2px; background-color: white; border-radius: 50%; transition: .15s;
+    }
+    input:checked + .slider { background-color: #1E88E5; }
+    input:checked + .slider:before { transform: translateX(16px); }
+    .tones {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .tone-box {
+      text-align: center;
+      font-size: 10px;
+      color: #555;
+    }
+    .tone-box input[type=color] {
+      width: 100%;
+      height: 26px;
+      padding: 0;
+      cursor: pointer;
+    }
+    .subopts { margin-top: 10px; padding-left: 4px; }
+    .radio-group { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+    .radio-group label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; cursor: pointer; }
+    .checkbox-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12.5px; }
+    .btn {
+      width: 100%;
+      padding: 9px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .btn-primary { background: #1E88E5; color: #fff; }
+    .btn-primary:hover { background: #1976D2; }
+    .btn-secondary { background: #f1f3f4; color: #202124; }
+    .btn-secondary:hover { background: #e4e6e7; }
+    .btn-danger { background: #fdecea; color: #c62828; }
+    .btn-danger:hover { background: #f9d5d3; }
+    .status {
+      min-height: 16px;
+      font-size: 11.5px;
+      color: #555;
+      margin-top: 4px;
+      text-align: center;
+    }
+    .status.err { color: #c62828; }
+    .status.ok { color: #2e7d32; }
+    .note {
+      font-size: 11px;
+      color: #888;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+    .disabled { opacity: 0.45; pointer-events: none; }
+    .host-badge {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #e8f0fe;
+      color: #1967d2;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🇨🇳 Chinese Tools</h1>
+    <span class="host-badge" id="hostBadge">…</span>
+  </header>
+  <p class="credit">by Huzaifa Irfan</p>
+
+  <!-- TONE COLORING -->
+  <section>
+    <div class="row">
+      <label class="title">Tone coloring</label>
+      <label class="switch">
+        <input type="checkbox" id="colorEnabled">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div id="colorOptions">
+      <div class="row">
+        <label>Preset</label>
+        <select id="preset">
+          <option value="pleco">Pleco (default)</option>
+          <option value="vivid">Vivid</option>
+          <option value="pastel">Pastel</option>
+          <option value="grayscale">Grayscale</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="tones">
+        <div class="tone-box"><input type="color" id="c1"><div>1st</div></div>
+        <div class="tone-box"><input type="color" id="c2"><div>2nd</div></div>
+        <div class="tone-box"><input type="color" id="c3"><div>3rd</div></div>
+        <div class="tone-box"><input type="color" id="c4"><div>4th</div></div>
+        <div class="tone-box"><input type="color" id="c5"><div>neutral</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ANNOTATION -->
+  <section>
+    <div class="row">
+      <label class="title">Phonetic annotation</label>
+      <label class="switch">
+        <input type="checkbox" id="annotationEnabled">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div id="annotationOptions" class="subopts">
+      <label style="display:block; font-size:12px; margin-bottom:4px; color:#555;">Script</label>
+      <div class="radio-group">
+        <label><input type="radio" name="annotationType" value="pinyin"> Pinyin</label>
+        <label><input type="radio" name="annotationType" value="zhuyin"> Zhuyin (注音)</label>
+        <label><input type="radio" name="annotationType" value="both"> Both</label>
+      </div>
+
+      <label style="display:block; font-size:12px; margin:10px 0 4px; color:#555;">Placement</label>
+      <div class="radio-group">
+        <label><input type="radio" name="annotationMode" value="char"> Character-by-character (superscript)</label>
+        <label><input type="radio" name="annotationMode" value="line"> Whole line (below each paragraph)</label>
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="colorAnnotation">
+        <label for="colorAnnotation">Color the annotation by tone (works even if character coloring above is off)</label>
+      </div>
+
+      <p class="note" id="annotationNote">Docs has no real ruby text, so annotations render as small superscript
+        text right after each character, or as a grey line under the paragraph.</p>
+    </div>
+  </section>
+
+  <!-- AUTO MODE (Docs only) -->
+  <section id="autoModeSection">
+    <div class="row">
+      <label class="title">Auto-refresh coloring</label>
+      <label class="switch">
+        <input type="checkbox" id="autoMode">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <p class="note" id="autoModeNote">Google Docs can't detect keystrokes, so true live-as-you-type isn't
+      possible. This re-applies tone coloring to the whole document about once a
+      minute in the background. Annotations still need a manual Convert click.</p>
+  </section>
+
+  <!-- ACTIONS -->
+  <section>
+    <div class="row" style="margin-top:2px;">
+      <label>Copy content</label>
+      <select id="copyMode">
+        <option value="chinese">Chinese only</option>
+        <option value="both">Chinese + Annotation</option>
+        <option value="annotation">Annotation only</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="btnSelection">Convert Selection</button>
+    <button class="btn btn-secondary" id="btnCopy">📋 Copy Selection</button>
+    <button class="btn btn-primary" id="btnDocument">Convert Whole Document</button>
+    <button class="btn btn-secondary" id="btnRefreshDict">Refresh Pinyin Data</button>
+    <button class="btn btn-danger" id="btnClear">Clear All Coloring &amp; Annotations</button>
+    <div class="status" id="status"></div>
+    <p class="note">Choose what to copy above. Copy uses your current tone-color/annotation
+      style live — it works even if "Phonetic annotation" is off, and never changes the doc.
+      Rich-text apps (email, chat, Word, other Docs/Slides/Sheets) keep the colors; plain-text
+      targets get just the characters and/or annotation text.</p>
+  </section>
+
+  <script>
+    let settings = null;
+    let host = null;
+    let loading = true;
+
+    function byId(id) { return document.getElementById(id); }
+
+    function setStatus(msg, type) {
+      const el = byId('status');
+      el.textContent = msg || '';
+      el.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    function applySettingsToForm() {
+      byId('colorEnabled').checked = settings.colorEnabled;
+      byId('preset').value = settings.preset;
+      byId('c1').value = settings.colors[1];
+      byId('c2').value = settings.colors[2];
+      byId('c3').value = settings.colors[3];
+      byId('c4').value = settings.colors[4];
+      byId('c5').value = settings.colors[5];
+
+      byId('annotationEnabled').checked = settings.annotationEnabled;
+      document.querySelector('input[name=annotationType][value="' + settings.annotationType + '"]').checked = true;
+      document.querySelector('input[name=annotationMode][value="' + settings.annotationMode + '"]').checked = true;
+      byId('colorAnnotation').checked = settings.colorAnnotation;
+
+      byId('autoMode').checked = settings.autoMode;
+      byId('copyMode').value = settings.copyMode || 'both';
+
+      updateEnabledStates();
+    }
+
+    function updateEnabledStates() {
+      const charColorOn = byId('colorEnabled').checked;
+      const annotationOn = byId('annotationEnabled').checked;
+      const annotationColorOn = byId('colorAnnotation').checked;
+      const paletteInUse = charColorOn || (annotationOn && annotationColorOn);
+
+      byId('colorOptions').classList.toggle('disabled', !paletteInUse);
+      byId('annotationOptions').classList.toggle('disabled', !annotationOn);
+
+      const isCustom = byId('preset').value === 'custom';
+      ['c1','c2','c3','c4','c5'].forEach(function(id) {
+        byId(id).disabled = !(isCustom && paletteInUse);
+      });
+    }
+
+    // Host-specific labels/limitations: line-mode + auto-refresh are Docs-only,
+    // Sheets/Slides never support superscript so annotation is always inline.
+    function applyHostLabels() {
+      const badges = { docs: 'Docs', sheets: 'Sheets', slides: 'Slides' };
+      byId('hostBadge').textContent = badges[host] || '—';
+
+      const wholeLabels = {
+        docs: 'Convert Whole Document',
+        sheets: 'Convert Whole Sheet',
+        slides: 'Convert Whole Presentation'
+      };
+      byId('btnDocument').textContent = wholeLabels[host] || 'Convert Whole Document';
+
+      const lineRadio = document.querySelector('input[name=annotationMode][value="line"]');
+      const lineLabel = lineRadio.closest('label');
+      const autoSection = byId('autoModeSection');
+
+      if (host !== 'docs') {
+        lineRadio.disabled = true;
+        lineLabel.style.opacity = '0.4';
+        lineLabel.title = 'Whole-line annotation is only available in Docs.';
+        autoSection.classList.add('disabled');
+        byId('autoModeNote').textContent = 'Auto-refresh is only available in Google Docs.';
+
+        if (settings.annotationMode === 'line') {
+          settings.annotationMode = 'char';
+          document.querySelector('input[name=annotationMode][value="char"]').checked = true;
+        }
+        byId('annotationNote').textContent = host === 'sheets'
+          ? 'Sheets has no ruby/superscript text, so annotations render inline right after each character, e.g. 字(zì).'
+          : 'Slides has no ruby/superscript text, so annotations render inline right after each character, e.g. 字(zì).';
+      }
+    }
+
+    function readFormIntoSettings() {
+      settings.colorEnabled = byId('colorEnabled').checked;
+      settings.preset = byId('preset').value;
+      settings.colors = {
+        1: byId('c1').value, 2: byId('c2').value, 3: byId('c3').value,
+        4: byId('c4').value, 5: byId('c5').value
+      };
+      settings.annotationEnabled = byId('annotationEnabled').checked;
+      settings.annotationType = document.querySelector('input[name=annotationType]:checked').value;
+      settings.annotationMode = document.querySelector('input[name=annotationMode]:checked').value;
+      settings.colorAnnotation = byId('colorAnnotation').checked;
+      settings.autoMode = byId('autoMode').checked;
+      settings.copyMode = byId('copyMode').value;
+    }
+
+    function persist() {
+      if (loading) return;
+      readFormIntoSettings();
+      updateEnabledStates();
+      google.script.run.saveSettings(settings);
+    }
+
+    function onPresetChange() {
+      const preset = byId('preset').value;
+      if (preset === 'custom') { persist(); return; }
+      google.script.run.withSuccessHandler(function(colors) {
+        settings.colors = colors;
+        byId('c1').value = colors[1];
+        byId('c2').value = colors[2];
+        byId('c3').value = colors[3];
+        byId('c4').value = colors[4];
+        byId('c5').value = colors[5];
+        persist();
+      }).getPresetColors(preset);
+    }
+
+    function copyRichText(html, text) {
+      // Primary: contenteditable + execCommand('copy'). Works reliably inside
+      // sandboxed iframes (like this sidebar) without needing clipboard
+      // permissions, and preserves the colored HTML.
+      try {
+        const container = document.createElement('div');
+        container.contentEditable = 'true';
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.innerHTML = html;
+        document.body.appendChild(container);
+
+        const range = document.createRange();
+        range.selectNodeContents(container);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+
+        const success = document.execCommand('copy');
+        sel.removeAllRanges();
+        document.body.removeChild(container);
+
+        if (success) {
+          setStatus('Copied! Paste it anywhere.', 'ok');
+          return;
+        }
+      } catch (err) { /* fall through to next method */ }
+
+      // Fallback: modern async Clipboard API with rich HTML
+      if (navigator.clipboard && window.ClipboardItem) {
+        navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([html], { type: 'text/html' }),
+            'text/plain': new Blob([text], { type: 'text/plain' })
+          })
+        ]).then(function() {
+          setStatus('Copied! Paste it anywhere.', 'ok');
+        }).catch(function() {
+          copyPlainTextFallback(text);
+        });
+        return;
+      }
+
+      copyPlainTextFallback(text);
+    }
+
+    function copyPlainTextFallback(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          setStatus('Copied as plain text (this browser blocked rich/colored copy).', 'ok');
+        }).catch(function() {
+          setStatus('Copy failed — select the result manually and press Ctrl/Cmd+C.', 'err');
+        });
+      } else {
+        setStatus('Copy failed — select the result manually and press Ctrl/Cmd+C.', 'err');
+      }
+    }
+
+    function init() {
+      google.script.run.withSuccessHandler(function(res) {
+        settings = res.settings;
+        host = res.host;
+        loading = false;
+        applySettingsToForm();
+        applyHostLabels();
+      }).getSettings();
+    }
+
+    // Wire up events
+    document.addEventListener('DOMContentLoaded', function() {
+      init();
+
+      byId('colorEnabled').addEventListener('change', persist);
+      byId('preset').addEventListener('change', onPresetChange);
+      ['c1','c2','c3','c4','c5'].forEach(function(id) {
+        byId(id).addEventListener('change', persist);
+      });
+      byId('annotationEnabled').addEventListener('change', persist);
+      document.querySelectorAll('input[name=annotationType]').forEach(function(el) {
+        el.addEventListener('change', persist);
+      });
+      document.querySelectorAll('input[name=annotationMode]').forEach(function(el) {
+        el.addEventListener('change', persist);
+      });
+      byId('colorAnnotation').addEventListener('change', persist);
+      byId('autoMode').addEventListener('change', persist);
+
+      byId('btnSelection').addEventListener('click', function() {
+        setStatus('Converting selection…');
+        google.script.run
+          .withSuccessHandler(function(r) { setStatus(r.message, r.ok ? 'ok' : 'err'); })
+          .withFailureHandler(function(e) { setStatus('Error: ' + e.message, 'err'); })
+          .convertSelection();
+      });
+
+      byId('copyMode').addEventListener('change', persist);
+
+      byId('btnCopy').addEventListener('click', function() {
+        setStatus('Preparing copy…');
+        google.script.run
+          .withSuccessHandler(function(r) {
+            if (!r.ok) { setStatus(r.message, 'err'); return; }
+            copyRichText(r.html, r.text);
+          })
+          .withFailureHandler(function(e) { setStatus('Error: ' + e.message, 'err'); })
+          .getSelectionMarkup(byId('copyMode').value);
+      });
+
+      byId('btnDocument').addEventListener('click', function() {
+        setStatus('Converting… this may take a moment.');
+        google.script.run
+          .withSuccessHandler(function(r) { setStatus(r.message, r.ok ? 'ok' : 'err'); })
+          .withFailureHandler(function(e) { setStatus('Error: ' + e.message, 'err'); })
+          .convertDocument();
+      });
+
+      byId('btnRefreshDict').addEventListener('click', function() {
+        setStatus('Refreshing pinyin dataset…');
+        google.script.run
+          .withSuccessHandler(function() { setStatus('Pinyin data refreshed.', 'ok'); })
+          .withFailureHandler(function(e) { setStatus('Error: ' + e.message, 'err'); })
+          .refreshPinyinData();
+      });
+
+      byId('btnClear').addEventListener('click', function() {
+        if (!confirm('Remove all tone colors and phonetic annotations from this file?')) return;
+        setStatus('Clearing…');
+        google.script.run
+          .withSuccessHandler(function(r) {
+            setStatus(r.message, r.ok ? 'ok' : 'err');
+            settings.autoMode = false;
+            byId('autoMode').checked = false;
+          })
+          .withFailureHandler(function(e) { setStatus('Error: ' + e.message, 'err'); })
+          .clearAll();
+      });
+    });
+  </script>
+</body>
+</html>
