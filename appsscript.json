@@ -15,7 +15,7 @@
   "addOns": {
     "common": {
       "name": "Google Docs Chinese Tools",
-      "logoUrl": "https://raw.githubusercontent.com/HuzaifaIrfan-Web/google-docs-chinese-tools/main/icon128.png",
+      "logoUrl": "https://raw.githubusercontent.com/HuzaifaIrfan-Web/google-docs-chinese-tools/main/img/icon128.png",
       "layoutProperties": {
         "primaryColor": "#1E88E5"
       },
