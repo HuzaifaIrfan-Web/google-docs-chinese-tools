@@ -1,16 +1,16 @@
 # Google Docs Chinese Tools
-A Google Docs add-on that automatically colors Chinese text by tone and adds Zhuyin or Pinyin annotations with customizable presets, including Pleco-style tone colors.
+A Google Docs, Sheets and Slides add-on that automatically colors Chinese text by tone and adds Zhuyin or Pinyin annotations with customizable presets, including Pleco-style tone colors.
 
 
 v1.0.1
 
-Last Updated on 2026-07-20
+Last Updated on 2026-07-21
 <hr />
 
 
 ## 🎬 Demo
 
-[▶️![Demo](https://img.youtube.com/vi/VkckWcXKCsM/maxresdefault.jpg)](https://www.youtube.com/watch?v=VkckWcXKCsM)
+[▶️![Demo](https://img.youtube.com/vi/vIbFYCdyHvk/maxresdefault.jpg)](https://www.youtube.com/watch?v=vIbFYCdyHvk)
 
 
 
