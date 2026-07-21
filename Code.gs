@@ -894,15 +894,6 @@ const SlidesEngine = {
           textRange.getRange(i, i + 1).getTextStyle().setForegroundColor(colorsMap[tone] || colorsMap[5]);
         }
       }
-      // Slides can silently drop a locally-applied style on the very first
-      // character of a text range (a run-boundary quirk at offset 0) unless
-      // it's reasserted after the rest of the range has already been styled.
-      // Reapply once more here as a safeguard.
-      if (isChinese_(str[0])) {
-        const reading0 = dict[str[0]];
-        const tone0 = reading0 ? parsePinyinSyllable_(reading0).tone : 5;
-        textRange.getRange(0, 1).getTextStyle().setForegroundColor(colorsMap[tone0] || colorsMap[5]);
-      }
     }
 
     if (settings.annotationEnabled && perChar) {
@@ -916,10 +907,12 @@ const SlidesEngine = {
         const parsed = parsePinyinSyllable_(reading);
         const ann = buildAnnotationString_(reading, parsed, settings.annotationType);
         const insertStr = '(' + ann + ')' + MARKER;
-        textRange.insertText(i + 1, insertStr); // insert after char i
-        const startA = i + 1, endA = startA + insertStr.length;
+        // insertText() returns a TextRange for exactly the text just inserted —
+        // style that directly rather than recomputing offsets afterward, which
+        // is what let the leading character silently keep its old style.
+        const insertedRange = textRange.insertText(i + 1, insertStr);
         if (settings.colorAnnotation) {
-          textRange.getRange(startA, endA).getTextStyle().setForegroundColor(colorsMap[parsed.tone] || colorsMap[5]);
+          insertedRange.getTextStyle().setForegroundColor(colorsMap[parsed.tone] || colorsMap[5]);
         }
       }
     }
@@ -948,14 +941,30 @@ const SlidesEngine = {
         const prefix = mode === 'append_inline' ? ' (' : '\n(';
         const insertStr = prefix + annText + ')' + MARKER;
         const insertAt = str.length;
-        textRange.insertText(insertAt, insertStr);
-        const blockStart = insertAt + prefix.length;
+        const insertedRange = textRange.insertText(insertAt, insertStr);
         if (settings.colorAnnotation) {
+          // Style the whole inserted block via its own returned range first
+          // (covers the common case), then re-color each segment individually
+          // for its correct tone — segments is relative to insertedRange, and
+          // since insertedRange IS the freshly-inserted text, offsets line up.
+          insertedRange.getTextStyle().setForegroundColor(colorsMap[segments[0].tone] || colorsMap[5]);
+          const blockStart = prefix.length;
           segments.forEach(function (seg) {
-            textRange.getRange(blockStart + seg.start, blockStart + seg.end + 1).getTextStyle().setForegroundColor(colorsMap[seg.tone] || colorsMap[5]);
+            insertedRange.getRange(blockStart + seg.start, blockStart + seg.end + 1).getTextStyle().setForegroundColor(colorsMap[seg.tone] || colorsMap[5]);
           });
         }
       }
+    }
+
+    // Slides can silently drop a locally-applied style on the very first
+    // character of a text range (a run-boundary quirk at offset 0) whenever
+    // something is inserted right after it — which the annotation/append
+    // steps above just did. Reapply the color fix here, last, so nothing
+    // downstream of it can clobber it again.
+    if (settings.colorEnabled && isChinese_(str[0])) {
+      const reading0 = dict[str[0]];
+      const tone0 = reading0 ? parsePinyinSyllable_(reading0).tone : 5;
+      textRange.getRange(0, 1).getTextStyle().setForegroundColor(colorsMap[tone0] || colorsMap[5]);
     }
   },
 
