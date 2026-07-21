@@ -240,6 +240,12 @@
       color: #1967d2;
     }
 
+    .version-tag {
+      font-size: 11px;
+      font-weight: 400;
+      color: #9aa0a6;
+    }
+
 
     .sidebar-footer {
       margin-top: 24px;
@@ -278,7 +284,7 @@
 
 <body>
   <header>
-    <h1>🇨🇳 Chinese Tools v1.0.0</h1>
+    <h1>🇨🇳 Chinese Tools <span class="version-tag" id="versionTag"></span></h1>
     <span class="host-badge" id="hostBadge">…</span>
   </header>
 
@@ -295,13 +301,11 @@
 
     <div id="colorOptions">
       <div class="row">
-        <label>Color Preset</label>
+        <label>Preset</label>
         <select id="preset">
-          <option value="pleco">Pleco</option>
-          <option value="material">Material</option>
-          <option value="colorblind">Colorblind Friendly</option>
-          <option value="vivid">High Contrast</option>
-          <option value="pastel">Soft</option>
+          <option value="pleco">Pleco (default)</option>
+          <option value="vivid">Vivid</option>
+          <option value="pastel">Pastel</option>
           <option value="grayscale">Grayscale</option>
           <option value="custom">Custom</option>
         </select>
@@ -346,10 +350,14 @@
 
       <label style="display:block; font-size:12px; margin:10px 0 4px; color:#555;">Placement</label>
       <div class="radio-group">
-        <label><input type="radio" name="annotationMode" value="char"> Character-by-character (superscript)</label>
+        <label><input type="radio" name="annotationMode" value="char_same"> Character-by-character (same line / font)</label>
+        <label><input type="radio" name="annotationMode" value="char_super"> Character-by-character (superscript)</label>
+        <label><input type="radio" name="annotationMode" value="append_inline"> Selected text (append after selected text)</label>
+        <label><input type="radio" name="annotationMode" value="append_newline"> Selected text (new line, appended after selected text)</label>
         <label><input type="radio" name="annotationMode" value="line"> Whole line (below each paragraph)</label>
       </div>
 
+      <label style="display:block; font-size:12px; margin:10px 0 4px; color:#555;">Annotation tone color</label>
       <div class="checkbox-row">
         <input type="checkbox" id="colorAnnotation">
         <label for="colorAnnotation">Color the annotation by tone (works even if character coloring above is
@@ -357,7 +365,8 @@
       </div>
 
       <p class="note" id="annotationNote">Docs has no real ruby text, so annotations render as small superscript
-        text right after each character, or as a grey line under the paragraph.</p>
+        text right after each character, a single block appended after the text you convert (same line or a
+        new line below it), or as a grey line under the paragraph.</p>
     </div>
   </section>
 
@@ -400,7 +409,7 @@
 
 
   <div class="sidebar-footer">
-    <p class="credit">by Huzaifa Irfan</p>
+    <p class="credit">by Huzaifa Irfan <span id="appVersion"></span></p>
 
     <p>
       <a href="https://github.com/HuzaifaIrfan-Web/google-docs-chinese-tools" target="_blank" rel="noopener noreferrer">
@@ -487,8 +496,10 @@
       });
     }
 
-    // Host-specific labels/limitations: line-mode + auto-refresh are Docs-only,
-    // Sheets/Slides never support superscript so annotation is always inline.
+    // Host-specific labels/limitations: superscript + whole-line + auto-refresh
+    // are Docs-only. Sheets/Slides support the two "append after selected text"
+    // modes and same-line character-by-character, but not true superscript or
+    // a separate line below a paragraph.
     function applyHostLabels() {
       const badges = { docs: 'Docs', sheets: 'Sheets', slides: 'Slides' };
       byId('hostBadge').textContent = badges[host] || '—';
@@ -501,23 +512,26 @@
       byId('btnDocument').textContent = wholeLabels[host] || 'Convert Whole Document';
 
       const lineRadio = document.querySelector('input[name=annotationMode][value="line"]');
-      const lineLabel = lineRadio.closest('label');
+      const superRadio = document.querySelector('input[name=annotationMode][value="char_super"]');
       const autoSection = byId('autoModeSection');
 
       if (host !== 'docs') {
-        lineRadio.disabled = true;
-        lineLabel.style.opacity = '0.4';
-        lineLabel.title = 'Whole-line annotation is only available in Docs.';
+        [lineRadio, superRadio].forEach(function (radio) {
+          radio.disabled = true;
+          const label = radio.closest('label');
+          label.style.opacity = '0.4';
+          label.title = 'Only available in Docs.';
+        });
         autoSection.classList.add('disabled');
         byId('autoModeNote').textContent = 'Auto-refresh is only available in Google Docs.';
 
-        if (settings.annotationMode === 'line') {
-          settings.annotationMode = 'char';
-          document.querySelector('input[name=annotationMode][value="char"]').checked = true;
+        if (settings.annotationMode === 'line' || settings.annotationMode === 'char_super' || settings.annotationMode === 'char') {
+          settings.annotationMode = 'char_same';
+          document.querySelector('input[name=annotationMode][value="char_same"]').checked = true;
         }
         byId('annotationNote').textContent = host === 'sheets'
-          ? 'Sheets has no ruby/superscript text, so annotations render inline right after each character, e.g. 字(zì).'
-          : 'Slides has no ruby/superscript text, so annotations render inline right after each character, e.g. 字(zì).';
+          ? 'Sheets has no ruby/superscript or below-paragraph text, so annotations render inline in the cell — right after each character, or as one block appended after the converted text.'
+          : 'Slides has no ruby/superscript or below-paragraph text, so annotations render inline in the text box — right after each character, or as one block appended after the converted text.';
       }
     }
 
@@ -624,6 +638,11 @@
         applySettingsToForm();
         applyHostLabels();
       }).getSettings();
+
+      google.script.run.withSuccessHandler(function (version) {
+        byId('versionTag').textContent = version;
+        byId('appVersion').textContent = '· ' + version;
+      }).getAppVersion();
     }
 
     // Wire up events

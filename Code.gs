@@ -22,64 +22,17 @@
 
 /* ============================== CONFIG ============================== */
 
+const APP_VERSION = 'v1.0.1';
+
 const TONE_COLORS_DEFAULT = {
   1: '#E53935', 2: '#43A047', 3: '#1E88E5', 4: '#8E24AA', 5: '#757575'
 };
 
 const PRESETS = {
-  // Similar to Pleco
-  pleco: {
-    1: '#E53935', // Red
-    2: '#43A047', // Green
-    3: '#1E88E5', // Blue
-    4: '#8E24AA', // Purple
-    5: '#757575'  // Gray
-  },
-
-  // Strong colors, excellent readability
-  vivid: {
-    1: '#C62828', // Dark Red
-    2: '#2E7D32', // Dark Green
-    3: '#1565C0', // Dark Blue
-    4: '#6A1B9A', // Dark Purple
-    5: '#616161'  // Gray
-  },
-
-  // Soft but still readable
-  pastel: {
-    1: '#D84315', // Soft Orange-Red
-    2: '#558B2F', // Olive Green
-    3: '#1976D2', // Medium Blue
-    4: '#7B1FA2', // Medium Purple
-    5: '#9E9E9E'
-  },
-
-  // Black & White friendly
-  grayscale: {
-    1: '#000000',
-    2: '#303030',
-    3: '#505050',
-    4: '#707070',
-    5: '#A0A0A0'
-  },
-
-  // Colorblind-friendly (Okabe-Ito palette)
-  colorblind: {
-    1: '#D55E00', // Vermillion
-    2: '#009E73', // Bluish Green
-    3: '#0072B2', // Blue
-    4: '#CC79A7', // Reddish Purple
-    5: '#7F7F7F'
-  },
-
-  // Material Design palette
-  material: {
-    1: '#D32F2F',
-    2: '#388E3C',
-    3: '#1976D2',
-    4: '#7B1FA2',
-    5: '#757575'
-  }
+  pleco: TONE_COLORS_DEFAULT,
+  vivid: { 1: '#FF1744', 2: '#00C853', 3: '#2979FF', 4: '#AA00FF', 5: '#9E9E9E' },
+  pastel: { 1: '#FFAB91', 2: '#A5D6A7', 3: '#90CAF9', 4: '#CE93D8', 5: '#BDBDBD' },
+  grayscale: { 1: '#212121', 2: '#424242', 3: '#616161', 4: '#757575', 5: '#9E9E9E' }
 };
 
 const PINYIN_DATA_URL = 'https://raw.githubusercontent.com/mozillazg/pinyin-data/master/pinyin.txt';
@@ -111,8 +64,8 @@ function onHomepage(e) {
   return CardService.newCardBuilder()
     .setHeader(
       CardService.newCardHeader()
-        .setTitle('🇨🇳 Google Docs Chinese Tools v1.0.0')
-        .setSubtitle('by Huzaifa Irfan')
+        .setTitle('🇨🇳 Google Docs Chinese Tools')
+        .setSubtitle('by Huzaifa Irfan · ' + APP_VERSION)
     )
     .addSection(
       CardService.newCardSection()
@@ -179,6 +132,10 @@ function showSidebar() {
   if (ui) ui.showSidebar(html);
 }
 
+function getAppVersion() {
+  return APP_VERSION;
+}
+
 /* ============================ HOST DETECTION ============================ */
 
 function getActiveHost_() {
@@ -209,7 +166,7 @@ function getDefaultSettings_() {
     colorEnabled: true,
     annotationEnabled: false,
     annotationType: 'pinyin',
-    annotationMode: 'char',    // 'line' only actually applies on Docs
+    annotationMode: 'char_super', // one of: char_same | char_super | append_inline | append_newline | line ('char_super' and 'line' are Docs-only)
     colorAnnotation: false,
     autoMode: false,           // Docs-only (time trigger)
     copyMode: 'both'
@@ -226,6 +183,7 @@ function getSettings() {
       merged = Object.assign({}, defaults, parsed, {
         colors: Object.assign({}, defaults.colors, parsed.colors || {})
       });
+      if (merged.annotationMode === 'char') merged.annotationMode = 'char_super'; // migrate old saved setting
     } catch (e) { merged = defaults; }
   }
   return { settings: merged, host: getActiveHost_() };
@@ -379,6 +337,16 @@ function escapeHtml_(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Builds a style="..." attribute (or '' if nothing to apply) so copied
+// content matches the font family/size of the text it was copied from,
+// instead of falling back to whatever font the paste target defaults to.
+function buildFontStyleAttr_(fontFamily, fontSize) {
+  let style = '';
+  if (fontFamily) style += 'font-family:' + fontFamily + ';';
+  if (fontSize) style += 'font-size:' + fontSize + 'pt;';
+  return style ? ' style="' + style + '"' : '';
+}
+
 /* ============================ PUBLIC DISPATCHERS ============================ */
 /* Client calls these regardless of host; they route to the right engine. */
 
@@ -450,7 +418,8 @@ const DocsEngine = {
       }
     }
 
-    if (settings.annotationEnabled && settings.annotationMode === 'char') {
+    if (settings.annotationEnabled && (settings.annotationMode === 'char_same' || settings.annotationMode === 'char_super')) {
+      const superscript = settings.annotationMode === 'char_super';
       for (let i = e; i >= s; i--) {
         const ch = str[i];
         if (!isChinese_(ch)) continue;
@@ -462,8 +431,44 @@ const DocsEngine = {
         const insertStr = '(' + annotation + ')' + MARKER;
         textEl.insertText(i + 1, insertStr);
         const startA = i + 1, endA = startA + insertStr.length - 1;
-        textEl.setTextAlignment(startA, endA, DocumentApp.TextAlignment.SUPERSCRIPT);
+        textEl.setTextAlignment(startA, endA, superscript ? DocumentApp.TextAlignment.SUPERSCRIPT : DocumentApp.TextAlignment.NORMAL);
         if (settings.colorAnnotation) textEl.setForegroundColor(startA, endA, colorsMap[parsed.tone] || colorsMap[5]);
+      }
+    }
+
+    if (settings.annotationEnabled && (settings.annotationMode === 'append_inline' || settings.annotationMode === 'append_newline')) {
+      // Already-converted runs are marked with MARKER right after the bound so
+      // re-running Convert doesn't keep appending duplicate annotation blocks.
+      if (str[e + 1] !== MARKER) {
+        const items = [];
+        for (let i = s; i <= e; i++) {
+          const ch = str[i];
+          if (!isChinese_(ch)) continue;
+          const reading = dict[ch];
+          if (!reading) continue;
+          items.push(reading);
+        }
+        if (items.length) {
+          let annText = '';
+          const segments = [];
+          items.forEach(function (reading, idx) {
+            const parsed = parsePinyinSyllable_(reading);
+            const ann = buildAnnotationString_(reading, parsed, settings.annotationType);
+            const segStart = annText.length;
+            annText += ann;
+            segments.push({ start: segStart, end: annText.length - 1, tone: parsed.tone });
+            if (idx < items.length - 1) { annText += ' '; }
+          });
+          const prefix = settings.annotationMode === 'append_newline' ? '\n' : ' ';
+          const insertStr = MARKER + prefix + '(' + annText + ')';
+          textEl.insertText(e + 1, insertStr);
+          const blockStart = e + 1 + MARKER.length + prefix.length + 1; // +1 to skip the opening '('
+          if (settings.colorAnnotation) {
+            segments.forEach(function (seg) {
+              textEl.setForegroundColor(blockStart + seg.start, blockStart + seg.end, colorsMap[seg.tone] || colorsMap[5]);
+            });
+          }
+        }
       }
     }
   },
@@ -556,16 +561,24 @@ const DocsEngine = {
     }
     const textElements = [];
     this.collectTextElements_(body, textElements);
-    const re = /([\u4E00-\u9FFF\u3400-\u4DBF])\(([^)]*)\)\u200B/;
+    const perCharRe = /([\u4E00-\u9FFF\u3400-\u4DBF])\(([^)]*)\)\u200B/;
+    const appendRe = /\u200B[ \n]\([^)]*\)/;
     textElements.forEach(textEl => {
       let changed = true;
       while (changed) {
         changed = false;
-        const m = re.exec(textEl.getText());
-        if (m) {
-          const start = m.index + m[1].length;
-          const end = start + ('(' + m[2] + ')' + MARKER).length - 1;
+        const str = textEl.getText();
+        const m1 = perCharRe.exec(str);
+        if (m1) {
+          const start = m1.index + m1[1].length;
+          const end = start + ('(' + m1[2] + ')' + MARKER).length - 1;
           textEl.deleteText(start, end);
+          changed = true;
+          continue;
+        }
+        const m2 = appendRe.exec(str);
+        if (m2) {
+          textEl.deleteText(m2.index, m2.index + m2[0].length - 1);
           changed = true;
         }
       }
@@ -587,7 +600,23 @@ const DocsEngine = {
     let hanziHtml = '', hanziText = '', hanziInlineHtml = '', hanziInlineText = '';
     const annItems = [];
 
-    selection.getRangeElements().forEach(re => {
+    // Capture the font family/size at the very start of the selection so the
+    // copied HTML matches the selected text's own styling.
+    let fontFamily = null, fontSize = null;
+    const rangeElements = selection.getRangeElements();
+    if (rangeElements.length) {
+      const firstRe = rangeElements[0];
+      const firstEl = firstRe.getElement();
+      if (firstEl.getType() === DocumentApp.ElementType.TEXT) {
+        const firstTextEl = firstEl.asText();
+        const firstOffset = firstRe.isPartial() ? firstRe.getStartOffset() : 0;
+        fontFamily = firstTextEl.getFontFamily(firstOffset);
+        fontSize = firstTextEl.getFontSize(firstOffset);
+      }
+    }
+    const divOpen = '<div' + buildFontStyleAttr_(fontFamily, fontSize) + '>';
+
+    rangeElements.forEach(re => {
       const el = re.getElement();
       if (el.getType() !== DocumentApp.ElementType.TEXT) return;
       const textEl = el.asText();
@@ -605,7 +634,10 @@ const DocsEngine = {
           if (reading) {
             const ann = buildAnnotationString_(reading, parsed, settings.annotationType);
             const annStyled = settings.colorAnnotation ? '<span style="color:' + toneColor + '">' + escapeHtml_(ann) + '</span>' : escapeHtml_(ann);
-            hanziInlineHtml += charSpan + '<sup style="font-size:0.65em">(' + annStyled + ')</sup>';
+            const annotatedChar = settings.annotationMode === 'char_super'
+              ? charSpan + '<sup style="font-size:0.65em">(' + annStyled + ')</sup>'
+              : charSpan + '(' + annStyled + ')';
+            hanziInlineHtml += annotatedChar;
             hanziInlineText += ch + '(' + ann + ')';
             annItems.push({ html: annStyled, text: ann });
           } else { hanziInlineHtml += charSpan; hanziInlineText += ch; }
@@ -618,17 +650,31 @@ const DocsEngine = {
 
     if (copyMode === 'annotation') {
       if (!annItems.length) return { ok: false, message: 'No recognized Chinese characters in the selection.' };
-      return { ok: true, html: '<div>' + annItems.map(a => a.html).join(' ') + '</div>', text: annItems.map(a => a.text).join(' ') };
+      return { ok: true, html: divOpen + annItems.map(a => a.html).join(' ') + '</div>', text: annItems.map(a => a.text).join(' ') };
     }
-    if (copyMode === 'chinese') return { ok: true, html: '<div>' + hanziHtml + '</div>', text: hanziText };
+    if (copyMode === 'chinese') return { ok: true, html: divOpen + hanziHtml + '</div>', text: hanziText };
     if (settings.annotationMode === 'line' && annItems.length) {
       return {
         ok: true,
-        html: '<div>' + hanziHtml + '<br><span style="font-size:0.8em;color:#9E9E9E">' + annItems.map(a => a.html).join('&nbsp;&nbsp;') + '</span></div>',
+        html: divOpen + hanziHtml + '<br><span style="font-size:0.8em;color:#9E9E9E">' + annItems.map(a => a.html).join('&nbsp;&nbsp;') + '</span></div>',
         text: hanziText + '\n' + annItems.map(a => a.text).join('  ')
       };
     }
-    return { ok: true, html: '<div>' + hanziInlineHtml + '</div>', text: hanziInlineText };
+    if (settings.annotationMode === 'append_inline' && annItems.length) {
+      return {
+        ok: true,
+        html: divOpen + hanziHtml + ' (' + annItems.map(a => a.html).join(' ') + ')</div>',
+        text: hanziText + ' (' + annItems.map(a => a.text).join(' ') + ')'
+      };
+    }
+    if (settings.annotationMode === 'append_newline' && annItems.length) {
+      return {
+        ok: true,
+        html: divOpen + hanziHtml + '<br>(' + annItems.map(a => a.html).join(' ') + ')</div>',
+        text: hanziText + '\n(' + annItems.map(a => a.text).join(' ') + ')'
+      };
+    }
+    return { ok: true, html: divOpen + hanziInlineHtml + '</div>', text: hanziInlineText };
   }
 };
 
@@ -650,12 +696,18 @@ const SheetsEngine = {
     return true;
   },
 
-  // Builds the final string (original text + inline annotations if enabled)
-  // plus a list of {start,end,color} runs to style.
+  // Builds the final string (original text + annotations if enabled, placed
+  // per the chosen mode) plus a list of {start,end,color} runs to style.
+  // Sheets cells have no true superscript or "line below" concept, so
+  // char_super behaves like char_same, and 'line' behaves like append_newline.
   buildAnnotatedString_: function (str, settings, dict) {
     const colorsMap = settings.colors;
+    const mode = settings.annotationMode;
+    const perChar = (mode === 'char_same' || mode === 'char_super' || !mode);
     let out = '';
     const runs = [];
+    const appendItems = []; // for append_inline / append_newline / line
+
     for (const ch of str) {
       const charStart = out.length;
       out += ch;
@@ -664,12 +716,37 @@ const SheetsEngine = {
         const tone = reading ? parsePinyinSyllable_(reading).tone : 5;
         if (settings.colorEnabled) runs.push({ start: charStart, end: out.length - 1, color: colorsMap[tone] || colorsMap[5] });
         if (settings.annotationEnabled && reading) {
-          const parsed = parsePinyinSyllable_(reading);
-          const ann = buildAnnotationString_(reading, parsed, settings.annotationType);
-          const annStart = out.length;
-          out += '(' + ann + ')';
-          if (settings.colorAnnotation) runs.push({ start: annStart, end: out.length - 1, color: colorsMap[parsed.tone] || colorsMap[5] });
+          if (perChar) {
+            const parsed = parsePinyinSyllable_(reading);
+            const ann = buildAnnotationString_(reading, parsed, settings.annotationType);
+            const annStart = out.length;
+            out += '(' + ann + ')';
+            if (settings.colorAnnotation) runs.push({ start: annStart, end: out.length - 1, color: colorsMap[parsed.tone] || colorsMap[5] });
+          } else {
+            appendItems.push(reading);
+          }
         }
+      }
+    }
+
+    if (settings.annotationEnabled && !perChar && appendItems.length) {
+      const segments = [];
+      let annText = '';
+      appendItems.forEach(function (reading, idx) {
+        const parsed = parsePinyinSyllable_(reading);
+        const ann = buildAnnotationString_(reading, parsed, settings.annotationType);
+        const segStart = annText.length;
+        annText += ann;
+        segments.push({ start: segStart, end: annText.length - 1, tone: parsed.tone });
+        if (idx < appendItems.length - 1) annText += ' ';
+      });
+      const prefix = mode === 'append_inline' ? ' (' : '\n(';
+      const blockStart = out.length + prefix.length;
+      out += prefix + annText + ')';
+      if (settings.colorAnnotation) {
+        segments.forEach(function (seg) {
+          runs.push({ start: blockStart + seg.start, end: blockStart + seg.end, color: colorsMap[seg.tone] || colorsMap[5] });
+        });
       }
     }
     return { text: out, runs: runs };
@@ -734,11 +811,19 @@ const SheetsEngine = {
   getSelectionMarkup: function (copyMode) {
     const settings = getSettings().settings;
     copyMode = copyMode || 'both';
+    const mode = settings.annotationMode;
+    const perChar = (mode === 'char_same' || mode === 'char_super' || !mode);
     const range = SpreadsheetApp.getActiveRange();
     if (!range) return { ok: false, message: 'Select some cells first, then click Copy Selection.' };
     const dict = getPinyinDict_();
     const colorsMap = settings.colors;
     const values = range.getValues();
+
+    // Match the font family/size of the top-left cell in the selection.
+    const fontFamily = range.getFontFamily();
+    const fontSize = range.getFontSize();
+    const divOpen = '<div' + buildFontStyleAttr_(fontFamily, fontSize) + '>';
+
     let hanziHtml = '', hanziText = '', inlineHtml = '', inlineText = '';
     const annItems = [];
     values.forEach(row => {
@@ -754,8 +839,13 @@ const SheetsEngine = {
             if (reading) {
               const ann = buildAnnotationString_(reading, parsed, settings.annotationType);
               const annStyled = settings.colorAnnotation ? '<span style="color:' + toneColor + '">' + escapeHtml_(ann) + '</span>' : escapeHtml_(ann);
-              inlineHtml += span + '(' + annStyled + ')';
-              inlineText += ch + '(' + ann + ')';
+              if (perChar) {
+                inlineHtml += span + '(' + annStyled + ')';
+                inlineText += ch + '(' + ann + ')';
+              } else {
+                inlineHtml += span;
+                inlineText += ch;
+              }
               annItems.push({ html: annStyled, text: ann });
             } else { inlineHtml += span; inlineText += ch; }
           } else {
@@ -768,10 +858,19 @@ const SheetsEngine = {
     });
     if (copyMode === 'annotation') {
       if (!annItems.length) return { ok: false, message: 'No recognized Chinese characters in the selection.' };
-      return { ok: true, html: '<div>' + annItems.map(a => a.html).join(' ') + '</div>', text: annItems.map(a => a.text).join(' ') };
+      return { ok: true, html: divOpen + annItems.map(a => a.html).join(' ') + '</div>', text: annItems.map(a => a.text).join(' ') };
     }
-    if (copyMode === 'chinese') return { ok: true, html: '<div>' + hanziHtml + '</div>', text: hanziText };
-    return { ok: true, html: '<div>' + inlineHtml + '</div>', text: inlineText };
+    if (copyMode === 'chinese') return { ok: true, html: divOpen + hanziHtml + '</div>', text: hanziText };
+    if (!perChar && annItems.length) {
+      const sep = mode === 'append_inline' ? ' ' : '<br>';
+      const sepText = mode === 'append_inline' ? ' ' : '\n';
+      return {
+        ok: true,
+        html: divOpen + inlineHtml + sep + '(' + annItems.map(a => a.html).join(' ') + ')</div>',
+        text: inlineText + sepText + '(' + annItems.map(a => a.text).join(' ') + ')'
+      };
+    }
+    return { ok: true, html: divOpen + inlineHtml + '</div>', text: inlineText };
   }
 };
 
@@ -782,6 +881,9 @@ const SlidesEngine = {
   processTextRange_: function (textRange, settings, dict, colorsMap) {
     const str = textRange.asString();
     if (!str) return;
+    const mode = settings.annotationMode;
+    const perChar = (mode === 'char_same' || mode === 'char_super' || !mode);
+
     // Color first (doesn't change length), forward.
     if (settings.colorEnabled) {
       for (let i = 0; i < str.length; i++) {
@@ -792,9 +894,19 @@ const SlidesEngine = {
           textRange.getRange(i, i + 1).getTextStyle().setForegroundColor(colorsMap[tone] || colorsMap[5]);
         }
       }
+      // Slides can silently drop a locally-applied style on the very first
+      // character of a text range (a run-boundary quirk at offset 0) unless
+      // it's reasserted after the rest of the range has already been styled.
+      // Reapply once more here as a safeguard.
+      if (isChinese_(str[0])) {
+        const reading0 = dict[str[0]];
+        const tone0 = reading0 ? parsePinyinSyllable_(reading0).tone : 5;
+        textRange.getRange(0, 1).getTextStyle().setForegroundColor(colorsMap[tone0] || colorsMap[5]);
+      }
     }
-    // Then annotate backward so earlier indices stay valid.
-    if (settings.annotationEnabled) {
+
+    if (settings.annotationEnabled && perChar) {
+      // Annotate backward so earlier indices stay valid.
       for (let i = str.length - 1; i >= 0; i--) {
         const ch = str[i];
         if (!isChinese_(ch)) continue;
@@ -804,10 +916,44 @@ const SlidesEngine = {
         const parsed = parsePinyinSyllable_(reading);
         const ann = buildAnnotationString_(reading, parsed, settings.annotationType);
         const insertStr = '(' + ann + ')' + MARKER;
-        textRange.getRange(i + 1, i + 1).insertText(insertStr); // insert after char i
+        textRange.insertText(i + 1, insertStr); // insert after char i
         const startA = i + 1, endA = startA + insertStr.length;
         if (settings.colorAnnotation) {
           textRange.getRange(startA, endA).getTextStyle().setForegroundColor(colorsMap[parsed.tone] || colorsMap[5]);
+        }
+      }
+    }
+
+    if (settings.annotationEnabled && !perChar && str.charAt(str.length - 1) !== MARKER) {
+      // append_inline / append_newline / line (Slides has no below-paragraph
+      // concept, so 'line' behaves the same as append_newline here).
+      const items = [];
+      for (let i = 0; i < str.length; i++) {
+        const ch = str[i];
+        if (!isChinese_(ch)) continue;
+        const reading = dict[ch];
+        if (reading) items.push(reading);
+      }
+      if (items.length) {
+        const segments = [];
+        let annText = '';
+        items.forEach(function (reading, idx) {
+          const parsed = parsePinyinSyllable_(reading);
+          const ann = buildAnnotationString_(reading, parsed, settings.annotationType);
+          const segStart = annText.length;
+          annText += ann;
+          segments.push({ start: segStart, end: annText.length - 1, tone: parsed.tone });
+          if (idx < items.length - 1) annText += ' ';
+        });
+        const prefix = mode === 'append_inline' ? ' (' : '\n(';
+        const insertStr = prefix + annText + ')' + MARKER;
+        const insertAt = str.length;
+        textRange.insertText(insertAt, insertStr);
+        const blockStart = insertAt + prefix.length;
+        if (settings.colorAnnotation) {
+          segments.forEach(function (seg) {
+            textRange.getRange(blockStart + seg.start, blockStart + seg.end + 1).getTextStyle().setForegroundColor(colorsMap[seg.tone] || colorsMap[5]);
+          });
         }
       }
     }
@@ -848,7 +994,8 @@ const SlidesEngine = {
 
   clearAll: function () {
     const pres = SlidesApp.getActivePresentation();
-    const re = /([\u4E00-\u9FFF\u3400-\u4DBF])\(([^)]*)\)\u200B/;
+    const perCharRe = /([\u4E00-\u9FFF\u3400-\u4DBF])\(([^)]*)\)\u200B/;
+    const appendRe = /[ \n]\([^)]*\)\u200B/;
     let count = 0;
     pres.getSlides().forEach(slide => {
       const shapes = [];
@@ -859,11 +1006,17 @@ const SlidesEngine = {
         while (changed) {
           changed = false;
           const str = tr.asString();
-          const m = re.exec(str);
-          if (m) {
-            const start = m.index + m[1].length;
-            const end = start + ('(' + m[2] + ')' + MARKER).length;
+          const m1 = perCharRe.exec(str);
+          if (m1) {
+            const start = m1.index + m1[1].length;
+            const end = start + ('(' + m1[2] + ')' + MARKER).length;
             tr.getRange(start, end).clear();
+            changed = true;
+            continue;
+          }
+          const m2 = appendRe.exec(str);
+          if (m2) {
+            tr.getRange(m2.index, m2.index + m2[0].length).clear();
             changed = true;
           }
         }
@@ -878,6 +1031,8 @@ const SlidesEngine = {
   getSelectionMarkup: function (copyMode) {
     const settings = getSettings().settings;
     copyMode = copyMode || 'both';
+    const mode = settings.annotationMode;
+    const perChar = (mode === 'char_same' || mode === 'char_super' || !mode);
     const selection = SlidesApp.getActivePresentation().getSelection();
     const pageElements = selection.getPageElementRange();
     if (!pageElements) return { ok: false, message: 'Select a text box first, then click Copy Selection.' };
@@ -885,11 +1040,26 @@ const SlidesEngine = {
     const colorsMap = settings.colors;
     let hanziHtml = '', hanziText = '', inlineHtml = '', inlineText = '';
     const annItems = [];
+    let fontFamily = null, fontSize = null;
     pageElements.getPageElements().forEach(pe => {
       if (pe.getPageElementType() !== SlidesApp.PageElementType.SHAPE) return;
       const shape = pe.asShape();
       if (!shape.getText) return;
-      const str = shape.getText().asString();
+      const textRange = shape.getText();
+      const str = textRange.asString();
+      if ((fontFamily === null || fontSize === null) && str.length) {
+        // Try the first character's own run style first; some runs inherit
+        // family/size from the shape's default style and return null here,
+        // so fall back to the whole range's aggregate style if needed.
+        const runStyle = textRange.getRange(0, 1).getTextStyle();
+        if (fontFamily === null) fontFamily = runStyle.getFontFamily();
+        if (fontSize === null) fontSize = runStyle.getFontSize();
+        if (fontFamily === null || fontSize === null) {
+          const wholeStyle = textRange.getTextStyle();
+          if (fontFamily === null) fontFamily = wholeStyle.getFontFamily();
+          if (fontSize === null) fontSize = wholeStyle.getFontSize();
+        }
+      }
       for (const ch of str) {
         if (isChinese_(ch)) {
           const reading = dict[ch];
@@ -900,8 +1070,13 @@ const SlidesEngine = {
           if (reading) {
             const ann = buildAnnotationString_(reading, parsed, settings.annotationType);
             const annStyled = settings.colorAnnotation ? '<span style="color:' + toneColor + '">' + escapeHtml_(ann) + '</span>' : escapeHtml_(ann);
-            inlineHtml += span + '(' + annStyled + ')';
-            inlineText += ch + '(' + ann + ')';
+            if (perChar) {
+              inlineHtml += span + '(' + annStyled + ')';
+              inlineText += ch + '(' + ann + ')';
+            } else {
+              inlineHtml += span;
+              inlineText += ch;
+            }
             annItems.push({ html: annStyled, text: ann });
           } else { inlineHtml += span; inlineText += ch; }
         } else {
@@ -910,12 +1085,22 @@ const SlidesEngine = {
         }
       }
     });
+    const divOpen = '<div' + buildFontStyleAttr_(fontFamily, fontSize) + '>';
     if (copyMode === 'annotation') {
       if (!annItems.length) return { ok: false, message: 'No recognized Chinese characters in the selection.' };
-      return { ok: true, html: '<div>' + annItems.map(a => a.html).join(' ') + '</div>', text: annItems.map(a => a.text).join(' ') };
+      return { ok: true, html: divOpen + annItems.map(a => a.html).join(' ') + '</div>', text: annItems.map(a => a.text).join(' ') };
     }
-    if (copyMode === 'chinese') return { ok: true, html: '<div>' + hanziHtml + '</div>', text: hanziText };
-    return { ok: true, html: '<div>' + inlineHtml + '</div>', text: inlineText };
+    if (copyMode === 'chinese') return { ok: true, html: divOpen + hanziHtml + '</div>', text: hanziText };
+    if (!perChar && annItems.length) {
+      const sep = mode === 'append_inline' ? ' ' : '<br>';
+      const sepText = mode === 'append_inline' ? ' ' : '\n';
+      return {
+        ok: true,
+        html: divOpen + inlineHtml + sep + '(' + annItems.map(a => a.html).join(' ') + ')</div>',
+        text: inlineText + sepText + '(' + annItems.map(a => a.text).join(' ') + ')'
+      };
+    }
+    return { ok: true, html: divOpen + inlineHtml + '</div>', text: inlineText };
   }
 };
 
